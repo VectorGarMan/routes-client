@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { CaptureView } from '@/views/CaptureView';
 import { ActiveRouteView } from '@/views/ActiveRouteView';
 import { HistoryView } from '@/views/HistoryView';

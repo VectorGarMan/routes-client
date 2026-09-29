@@ -1,7 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { DeliveryPointForm } from '@/components/DeliveryPointForm';
-import React from 'react';
 
 describe('DeliveryPointForm', () => {
   it('muestra error si se envía sin referencia', async () => {

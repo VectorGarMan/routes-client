@@ -1,4 +1,3 @@
-import React from 'react';
 import type { DeliveryPointResponse } from '@/models';
 import { formatTime } from '@/utils/format';
 

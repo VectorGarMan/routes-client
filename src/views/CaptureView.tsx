@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { DeliveryPointForm } from '@/components/DeliveryPointForm';
 import { PointList } from '@/components/PointList';
 import { LoadingSpinner } from '@/components/LoadingSpinner';

@@ -1,5 +1,3 @@
-import React from 'react';
-
 interface Props {
   message: string;
   type?: 'info' | 'success' | 'warning';

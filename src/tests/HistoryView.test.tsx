@@ -19,6 +19,7 @@ function makeRoute(id: string, status: RouteResponseDto['status']): RouteRespons
     ],
     totalDistanceMeters: 1200,
     totalTimeSeconds: 600,
+    routeGeometry: null,
     updatedAt: '2026-01-01T10:00:00-06:00',
   };
 }

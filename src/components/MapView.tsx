@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import type { DeliveryPointResponse, RouteStopDto } from '@/models';
@@ -71,6 +71,8 @@ export interface MapViewProps {
   depotPointId?: string;
   /** Ubicación actual del chofer */
   currentPosition?: { lat: number; lng: number };
+  /** Geometría real de la ruta (calles) devuelta por el backend, en formato [lng, lat] (GeoJSON) */
+  routeGeometry?: [number, number][] | null;
 }
 
 /**
@@ -84,18 +86,24 @@ export function MapView({
   nextPointId,
   depotPointId,
   currentPosition,
+  routeGeometry,
 }: MapViewProps) {
-  // Construir polilínea en el orden de paradas
-  const polylinePoints: [number, number][] = stops
-    .filter((s) => {
-      const p = pointsById[s.pointId];
-      return p?.latitude != null && p?.longitude != null;
-    })
-    .sort((a, b) => a.order - b.order)
-    .map((s) => {
-      const p = pointsById[s.pointId];
-      return [p.latitude!, p.longitude!] as [number, number];
-    });
+  // Preferir la geometría real (calles) que devuelve el backend (Mapbox Directions).
+  // GeoJSON usa [lng, lat]; Leaflet espera [lat, lng].
+  // Si no hay geometría (fallback/mocks), se traza una línea recta entre paradas.
+  const polylinePoints: [number, number][] =
+    routeGeometry && routeGeometry.length > 1
+      ? routeGeometry.map(([lng, lat]) => [lat, lng] as [number, number])
+      : stops
+          .filter((s) => {
+            const p = pointsById[s.pointId];
+            return p?.latitude != null && p?.longitude != null;
+          })
+          .sort((a, b) => a.order - b.order)
+          .map((s) => {
+            const p = pointsById[s.pointId];
+            return [p.latitude!, p.longitude!] as [number, number];
+          });
 
   // Centro del mapa: primer punto con coordenadas o posición actual
   const allPoints = Object.values(pointsById).filter(
@@ -147,7 +155,7 @@ export function MapView({
           const isNext = stop.pointId === nextPointId;
           const isVisited = stop.status === 'VISITED';
 
-          let icon = pendingIcon;
+          let icon: L.Icon | L.DivIcon = pendingIcon;
           if (isDepot) icon = depotIcon;
           else if (isNext) icon = nextIcon;
           else if (isVisited) icon = visitedIcon;

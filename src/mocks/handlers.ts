@@ -135,6 +135,7 @@ export const handlers = [
       stops,
       totalDistanceMeters: Math.round(totalDist || 8500),
       totalTimeSeconds: Math.round(totalTime || 900),
+      routeGeometry: null,
       updatedAt: new Date().toISOString(),
     };
     routes[route.routeId] = route;

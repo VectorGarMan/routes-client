@@ -1,4 +1,3 @@
-import React from 'react';
 import type { RouteResponseDto, DeliveryPointResponse } from '@/models';
 import { formatDistance, formatDuration, routeStatusLabel } from '@/utils/format';
 import { getNextStop } from '@/utils/routeUtils';
