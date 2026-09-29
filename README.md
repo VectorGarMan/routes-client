@@ -178,12 +178,12 @@ src/
 ## Decisiones tomadas
 
 ### Tecnología de mapas
-**Leaflet + OpenStreetMap** (`react-leaflet`). Se eligió como opción por defecto porque:
-- Es libre, gratuita y sin necesidad de API key.
-- El contrato del backend no especifica un proveedor de mapas.
-- El componente `MapView` encapsula toda la lógica del mapa detrás de una abstracción; cambiar el proveedor solo requiere modificar ese archivo.
+**Leaflet + OpenStreetMap** (`react-leaflet`) solo para dibujar el fondo del mapa.
 
-> Para usar Google Maps u otro proveedor: reemplaza `MapView.tsx` manteniendo la misma interfaz de props (`pointsById`, `stops`, `nextPointId`, `depotPointId`, `currentPosition`).
+- **Mapbox lo maneja únicamente el backend** (`routes-api`, con `MAPBOX_ACCESS_TOKEN`): geocodificación, distancias, tiempos y tráfico. El contrato del proyecto dice que React nunca llama directamente a la API de mapas, así que el cliente **no tiene variables de Mapbox** ni ningún token.
+- Las teselas de OpenStreetMap no requieren API key ni variables. Es un servidor público de uso ligero, adecuado para un proyecto local/escolar.
+- El componente `MapView` encapsula el mapa detrás de una abstracción; cambiar el proveedor solo requiere modificar ese archivo, manteniendo sus props (`pointsById`, `stops`, `nextPointId`, `depotPointId`, `currentPosition`).
+- Si en el futuro se quiere un fondo de Mapbox sin exponer token en el navegador, la vía es un endpoint en el backend que sirva las teselas (issue nuevo en `routes-api`).
 
 ### Estado local vs. store global
 Se usa estado local en `App.tsx` para los puntos capturados y la ruta activa. No se agregó Redux/Zustand para mantener la solución simple; si el proyecto crece, el estado de `pointsById` puede migrarse fácilmente a un store.
