@@ -2,6 +2,23 @@
 
 Frontend React para el **Routes Optimization Service** (backend Spring Boot). Permite a un chofer/repartidor registrar puntos de entrega, calcular una ruta óptima y seguirla en tiempo real desde el celular.
 
+Proyecto de optimización de rutas para logística en el Corredor Industrial El Salto. Es de acceso libre: no hay login ni usuarios.
+
+## Cómo encaja con el resto del sistema
+
+```
+routes-client (este repo)  ──HTTP──►  routes-api (Spring Boot)  ──►  Mapbox, PostgreSQL
+        React + Vite                   orquestador                 └►  routes-optimizer-microservice (Python)
+```
+
+| Repositorio | Rol |
+|---|---|
+| [`routes-client`](https://github.com/VectorGarMan/routes-client) | Este frontend. Solo habla con `routes-api`. |
+| [`routes-api`](https://github.com/VectorGarMan/routes-api) | Backend: valida puntos, calcula matrices con Mapbox, persiste rutas y coordina al optimizador. |
+| [`routes-optimizer-microservice`](https://github.com/VectorGarMan/routes-optimizer-microservice) | Servicio Python (FastAPI + OR-Tools) que calcula el orden óptimo. |
+
+El cliente **nunca** llama directamente a Python ni a la API de mapas (Mapbox): todo pasa por `routes-api`.
+
 ---
 
 ## Requisitos
@@ -16,8 +33,8 @@ Frontend React para el **Routes Optimization Service** (backend Spring Boot). Pe
 ## Instalación y arranque
 
 ```bash
-# 1. Instalar dependencias
-npm install
+# 1. Instalar dependencias (usa las versiones exactas de package-lock.json)
+npm ci
 
 # 2. Copiar variables de entorno
 cp .env.example .env
@@ -76,6 +93,10 @@ VITE_USE_MOCK_503=true
 VITE_USE_MOCK=false
 npm run dev
 ```
+
+**CORS:** `routes-api` solo acepta peticiones desde el origen `http://localhost:5173` (el puerto por defecto de Vite). Si cambias el puerto del cliente, el navegador bloqueará las llamadas hasta que se ajuste `WebConfig` en `routes-api`.
+
+Para que el backend responda de punta a punta también necesita PostgreSQL, el servicio Python del optimizador y su token de Mapbox; consulta el README de `routes-api`.
 
 ---
 
@@ -151,7 +172,7 @@ src/
 ├── components/
 │   ├── DeliveryPointForm.tsx  # Formulario de captura (FE-004)
 │   ├── PointList.tsx          # Lista de puntos capturados (FE-005)
-│   ├── MapView.tsx            # Mapa encapsulado Leaflet+OSM (FE-010/011)
+│   ├── MapView.tsx            # Mapa Leaflet+OSM; dibuja routeGeometry (FE-010/011)
 │   ├── RouteResult.tsx        # Resultado de ruta: paradas, distancia, tiempo (FE-009)
 │   ├── LoadingSpinner.tsx
 │   ├── ErrorMessage.tsx
@@ -182,7 +203,8 @@ src/
 
 - **Mapbox lo maneja únicamente el backend** (`routes-api`, con `MAPBOX_ACCESS_TOKEN`): geocodificación, distancias, tiempos y tráfico. El contrato del proyecto dice que React nunca llama directamente a la API de mapas, así que el cliente **no tiene variables de Mapbox** ni ningún token.
 - Las teselas de OpenStreetMap no requieren API key ni variables. Es un servidor público de uso ligero, adecuado para un proyecto local/escolar.
-- El componente `MapView` encapsula el mapa detrás de una abstracción; cambiar el proveedor solo requiere modificar ese archivo, manteniendo sus props (`pointsById`, `stops`, `nextPointId`, `depotPointId`, `currentPosition`).
+- **Ruta real por calles:** el backend devuelve `routeGeometry` (la geometría de Mapbox Directions, lista de `[lng, lat]` en orden GeoJSON) y `MapView` la dibuja como polilínea, convirtiéndola a `[lat, lng]` que es lo que espera Leaflet. Así el cliente muestra el recorrido real sin llamar a Mapbox. Si `routeGeometry` viene `null` (mocks, rutas creadas antes de este cambio, o Mapbox no pudo devolverla) se traza una línea recta entre paradas.
+- El componente `MapView` encapsula el mapa detrás de una abstracción; cambiar el proveedor solo requiere modificar ese archivo, manteniendo sus props (`pointsById`, `stops`, `nextPointId`, `depotPointId`, `currentPosition`, `routeGeometry`).
 - Si en el futuro se quiere un fondo de Mapbox sin exponer token en el navegador, la vía es un endpoint en el backend que sirva las teselas (issue nuevo en `routes-api`).
 
 ### Estado local vs. store global
@@ -213,6 +235,7 @@ El backend (`routes-api`, rama `main`) es la fuente de verdad. **`api-docs.json`
 |---|---|
 | Estados de ruta | `CALCULATING`, `ACTIVE`, `COMPLETED`, `ERROR` (una ruta recién calculada llega `ACTIVE`) |
 | Estados de parada | `PENDING`, `VISITED` |
+| Geometría de la ruta | `routeGeometry`: `[lng, lat][] \| null` dentro de `RouteResponseDto` (GeoJSON, opcional) |
 | Historial | `ApiResponse<RouteResponseDto[]>` (arreglo plano) |
 | Códigos de error | `LOCATION_INVALID` (422), `MAPS_UNAVAILABLE` (503), `MAPS_RATE_LIMIT` (429), `VALIDATION_ERROR` (400), `ROUTE_INFEASIBLE` (422), `OPTIMIZER_UNAVAILABLE` (503) |
 | Id inexistente / parada fuera de orden | `VALIDATION_ERROR` (400) con mensaje específico, no 404 ni código propio |
