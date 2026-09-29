@@ -1,0 +1,8 @@
+/* eslint-disable */
+// @ts-nocheck
+/**
+ * Service Worker para MSW (Mock Service Worker).
+ * Este archivo es copiado por MSW en el directorio public.
+ * Para regenerarlo después de instalar dependencias:
+ *   npx msw init public/ --save
+ */
