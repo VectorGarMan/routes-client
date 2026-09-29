@@ -1,9 +1,5 @@
 import { http } from './httpClient';
-import type {
-  OptimizeRouteRequest,
-  RouteResponseDto,
-  PageResponse,
-} from '@/models';
+import type { OptimizeRouteRequest, RouteResponseDto } from '@/models';
 
 export const routeService = {
   /**
@@ -33,11 +29,12 @@ export const routeService = {
   },
 
   /**
-   * Obtiene el historial de rutas paginado.
+   * Obtiene una página del historial (más reciente primero).
    * GET /api/v1/routes/history?page=0&size=20
+   * El backend devuelve un arreglo plano, sin metadatos de paginación.
    */
-  getHistory(page = 0, size = 20): Promise<PageResponse<RouteResponseDto>> {
-    return http.get<PageResponse<RouteResponseDto>>(
+  getHistory(page = 0, size = 20): Promise<RouteResponseDto[]> {
+    return http.get<RouteResponseDto[]>(
       `/api/v1/routes/history?page=${page}&size=${size}`
     );
   },

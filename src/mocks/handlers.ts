@@ -7,6 +7,13 @@ import type {
   RouteStopDto,
 } from '@/models';
 
+/**
+ * Mocks MSW que imitan el comportamiento REAL del backend Spring (routes-api):
+ * mismos estados de ruta (ACTIVE/COMPLETED), mismos códigos de error
+ * (VALIDATION_ERROR, LOCATION_INVALID, OPTIMIZER_UNAVAILABLE...), mismos
+ * mensajes y el historial como arreglo plano. Si el backend cambia, actualizar aquí.
+ */
+
 // ─── Estado en memoria del mock ───────────────────────────────────────────────
 
 const points: Record<string, DeliveryPointResponse> = {};
@@ -40,6 +47,11 @@ function errorResponse(code: string, message: string, status: number) {
   );
 }
 
+// El backend responde 400 VALIDATION_ERROR (no 404) para ids inexistentes.
+function validationError(message: string) {
+  return errorResponse('VALIDATION_ERROR', message, 400);
+}
+
 // ─── Handlers MSW ─────────────────────────────────────────────────────────────
 
 export const handlers = [
@@ -48,10 +60,15 @@ export const handlers = [
     const body = (await request.json()) as DeliveryPointRequest;
 
     if (!body.reference?.trim()) {
-      return errorResponse('INVALID_PAYLOAD', 'La referencia es obligatoria.', 400);
+      return validationError('Datos inválidos');
     }
-    if (!body.address && body.latitude == null && body.longitude == null) {
-      return errorResponse('LOCATION_INVALID', 'La ubicación del punto no es válida.', 400);
+    if (!body.address?.trim() && (body.latitude == null || body.longitude == null)) {
+      return validationError('Se requiere address o latitude/longitude');
+    }
+    // Atajo para probar FE-006 en modo mock: una dirección que contenga "invalida"
+    // simula una ubicación que Mapbox no reconoce (el backend responde 422).
+    if (body.address?.toLowerCase().includes('invalida')) {
+      return errorResponse('LOCATION_INVALID', 'La ubicación no pudo ser validada', 422);
     }
 
     const point: DeliveryPointResponse = {
@@ -64,7 +81,7 @@ export const handlers = [
     };
     points[point.id] = point;
     return HttpResponse.json(
-      { success: true, message: 'Punto registrado.', data: point, error: null },
+      { success: true, message: 'Punto de entrega registrado', data: point, error: null },
       { status: 201 }
     );
   }),
@@ -76,17 +93,17 @@ export const handlers = [
     // Simular 503 si VITE_USE_MOCK_503=true
     if (import.meta.env.VITE_USE_MOCK_503 === 'true') {
       return errorResponse(
-        'OPTIMIZATION_SERVICE_UNAVAILABLE',
-        'El servicio de optimización no está disponible.',
+        'OPTIMIZER_UNAVAILABLE',
+        'El servicio de optimización no está disponible',
         503
       );
     }
 
-    if (!body.pointIds || body.pointIds.length < 2) {
-      return errorResponse('INVALID_PAYLOAD', 'Se requieren al menos 2 puntos.', 400);
+    if (!body.pointIds || body.pointIds.length === 0) {
+      return validationError('Datos inválidos');
     }
     if (!body.pointIds.includes(body.depotPointId)) {
-      return errorResponse('INVALID_PAYLOAD', 'El depósito debe estar en la lista de puntos.', 400);
+      return validationError('depotPointId debe estar incluido en pointIds');
     }
 
     const stops: RouteStopDto[] = body.pointIds.map((id, idx) => ({
@@ -114,7 +131,7 @@ export const handlers = [
 
     const route: RouteResponseDto = {
       routeId: uuid(),
-      status: 'IN_PROGRESS',
+      status: 'ACTIVE',
       stops,
       totalDistanceMeters: Math.round(totalDist || 8500),
       totalTimeSeconds: Math.round(totalTime || 900),
@@ -128,7 +145,7 @@ export const handlers = [
   http.post('*/api/v1/routes/:routeId/recalculate', ({ params }) => {
     const routeId = params.routeId as string;
     const route = routes[routeId];
-    if (!route) return errorResponse('ROUTE_NOT_FOUND', 'Ruta no encontrada.', 404);
+    if (!route) return validationError('routeId no existe');
 
     const updated: RouteResponseDto = {
       ...route,
@@ -145,26 +162,24 @@ export const handlers = [
     const routeId = params.routeId as string;
     const pointId = params.pointId as string;
     const route = routes[routeId];
-    if (!route) return errorResponse('ROUTE_NOT_FOUND', 'Ruta no encontrada.', 404);
+    if (!route) return validationError('routeId no existe');
 
     const sorted = [...route.stops].sort((a, b) => a.order - b.order);
-    const targetIdx = sorted.findIndex((s) => s.pointId === pointId);
+    const target = sorted.find((s) => s.pointId === pointId);
+    if (!target) return validationError('pointId no forma parte de esta ruta');
 
-    if (targetIdx === -1) {
-      return errorResponse('POINT_NOT_FOUND', 'Parada no encontrada en la ruta.', 404);
-    }
+    // Idempotente: marcar una parada ya visitada no es un error.
+    if (target.status === 'VISITED') return wrap(route);
 
-    // Verificar que no haya parada pendiente anterior
-    const firstPendingIdx = sorted.findIndex((s) => s.status === 'PENDING');
-    if (firstPendingIdx !== -1 && firstPendingIdx < targetIdx) {
-      return errorResponse(
-        'STOP_OUT_OF_ORDER',
-        'Debes marcar primero la parada pendiente anterior.',
-        400
+    // Solo se puede marcar la primera parada pendiente (el backend responde
+    // VALIDATION_ERROR con este mensaje, no un código propio).
+    const nextPending = sorted.find((s) => s.status === 'PENDING');
+    if (nextPending && nextPending.pointId !== pointId) {
+      return validationError(
+        `Debe marcarse primero la parada pendiente con order=${nextPending.order}`
       );
     }
 
-    // Marcar visitada (idempotente)
     const updatedStops = route.stops.map((s) =>
       s.pointId === pointId ? { ...s, status: 'VISITED' as const } : s
     );
@@ -172,14 +187,14 @@ export const handlers = [
     const updated: RouteResponseDto = {
       ...route,
       stops: updatedStops,
-      status: allVisited ? 'COMPLETED' : 'IN_PROGRESS',
+      status: allVisited ? 'COMPLETED' : 'ACTIVE',
       updatedAt: new Date().toISOString(),
     };
     routes[routeId] = updated;
     return wrap(updated);
   }),
 
-  // GET /api/v1/routes/history
+  // GET /api/v1/routes/history  -> arreglo plano, sin metadatos de paginación
   http.get('*/api/v1/routes/history', ({ request }) => {
     const url = new URL(request.url);
     const page = parseInt(url.searchParams.get('page') ?? '0');
@@ -188,13 +203,6 @@ export const handlers = [
       (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
     );
     const start = page * size;
-    const content = all.slice(start, start + size);
-    return wrap({
-      content,
-      totalElements: all.length,
-      totalPages: Math.max(1, Math.ceil(all.length / size)),
-      size,
-      number: page,
-    });
+    return wrap(all.slice(start, start + size));
   }),
 ];

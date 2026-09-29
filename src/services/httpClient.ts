@@ -17,20 +17,25 @@ export class ApiDomainError extends Error {
 
 // ─── Mensajes amigables en español ───────────────────────────────────────────
 
+// Códigos estables del backend (ErrorCode). VALIDATION_ERROR no va aquí a propósito:
+// el backend envía un mensaje específico en español y se muestra tal cual.
 const ERROR_MESSAGES: Record<string, string> = {
   LOCATION_INVALID:
     'La ubicación del punto no es válida. Verifica las coordenadas o la dirección.',
-  STOP_OUT_OF_ORDER:
-    'Debes marcar primero la parada pendiente anterior antes de esta.',
-  OPTIMIZATION_SERVICE_UNAVAILABLE:
+  MAPS_UNAVAILABLE:
+    'El servicio de mapas no está disponible. Intenta de nuevo en unos minutos.',
+  MAPS_RATE_LIMIT:
+    'Se alcanzó el límite de consultas al servicio de mapas. Espera un momento e intenta de nuevo.',
+  ROUTE_INFEASIBLE:
+    'No se encontró una ruta viable con los puntos y restricciones indicados.',
+  OPTIMIZER_UNAVAILABLE:
     'El servicio de optimización no está disponible. Intenta de nuevo más tarde.',
-  ROUTE_NOT_FOUND: 'La ruta no fue encontrada.',
-  POINT_NOT_FOUND: 'El punto de entrega no fue encontrado.',
-  INVALID_PAYLOAD: 'Los datos enviados son inválidos. Revisa el formulario.',
 };
 
 function friendlyMessage(code: string, fallback: string, httpStatus?: number): string {
   if (ERROR_MESSAGES[code]) return ERROR_MESSAGES[code];
+  // Ej.: "Debe marcarse primero la parada pendiente con order=2".
+  if (code === 'VALIDATION_ERROR' && fallback) return fallback;
   if (httpStatus === 400) return 'Los datos enviados son inválidos.';
   if (httpStatus === 404) return 'El recurso solicitado no fue encontrado.';
   if (httpStatus === 503)

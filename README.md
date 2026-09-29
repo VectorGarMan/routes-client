@@ -57,7 +57,7 @@ npx msw init public/ --save
 npm run dev
 ```
 
-Los 5 endpoints del contrato están simulados, incluyendo errores 400 (parada fuera de orden, payload inválido), 404 y 503.
+Los 5 endpoints están simulados imitando el comportamiento **real** del backend (mismos estados, códigos de error y mensajes; ver "Contrato con el backend"). Para probar `LOCATION_INVALID` (422) en modo mock, registra un punto cuya dirección contenga la palabra `invalida`.
 
 Para forzar un error 503 en el endpoint `/optimize`:
 
@@ -93,6 +93,9 @@ Los tests cubren:
 - Validación del formulario de puntos (`DeliveryPointForm.test.tsx`)
 - Desenvoltura de `ApiResponse` y mapeo de errores (`httpClient.test.ts`)
 - Cálculo del siguiente destino (`routeUtils.test.ts`)
+- Polling de recálculo con el estado real `ACTIVE` (`useRecalculatePolling.test.ts`)
+- Historial como arreglo plano y su paginación (`HistoryView.test.tsx`)
+- Persistencia de la ruta activa (`storage.test.ts`) y etiquetas de estado (`format.test.ts`)
 
 ---
 
@@ -141,8 +144,9 @@ src/
 │   └── useRecalculatePolling.ts # Polling periódico de recálculo
 │
 ├── utils/
-│   ├── format.ts         # Conversiones metros→km, segundos→min (SOLO presentación)
-│   └── routeUtils.ts     # getNextStop, validateReference, validateLocation
+│   ├── format.ts         # Conversiones metros→km, segundos→min y etiquetas de estado (SOLO presentación)
+│   ├── routeUtils.ts     # getNextStop, validateReference, validateLocation
+│   └── storage.ts        # Persistencia de la ruta activa en localStorage
 │
 ├── components/
 │   ├── DeliveryPointForm.tsx  # Formulario de captura (FE-004)
@@ -191,7 +195,27 @@ El backend no expone un endpoint para listar puntos de entrega. El frontend mant
 El primer punto capturado se marca automáticamente como depósito. El usuario puede cambiar el depósito en cualquier momento desde la lista de puntos.
 
 ### Polling de recálculo
-Intervalo configurable con `VITE_RECALCULATE_INTERVAL_MS` (default 30 s). El polling se detiene automáticamente cuando la ruta llega a `COMPLETED` o el componente se desmonta.
+Intervalo configurable con `VITE_RECALCULATE_INTERVAL_MS` (default 30 s). El polling solo corre mientras la ruta está `ACTIVE` (el estado real del backend) y se detiene con `COMPLETED` o al desmontar el componente.
+
+### Historial sin metadatos de paginación
+`GET /api/v1/routes/history` devuelve un arreglo plano (sin `totalPages`). La vista asume que hay página siguiente cuando la actual llega llena (20 rutas); una última página exactamente llena muestra "No hay más rutas" al avanzar.
+
+### Ruta activa persistente
+La ruta activa (con sus puntos y depósito) se guarda en `localStorage` (`src/utils/storage.ts`) para que recargar la página en el celular no la pierda. Al completarse la ruta se borra. Si el almacenamiento no está disponible, la app funciona igual sin persistir.
+
+---
+
+## Contrato con el backend
+
+El backend (`routes-api`, rama `main`) es la fuente de verdad. **`api-docs.json` no es confiable**: describe estados (`PENDING/IN_PROGRESS`) y respuestas 404 que el backend no produce.
+
+| Elemento | Valor real |
+|---|---|
+| Estados de ruta | `CALCULATING`, `ACTIVE`, `COMPLETED`, `ERROR` (una ruta recién calculada llega `ACTIVE`) |
+| Estados de parada | `PENDING`, `VISITED` |
+| Historial | `ApiResponse<RouteResponseDto[]>` (arreglo plano) |
+| Códigos de error | `LOCATION_INVALID` (422), `MAPS_UNAVAILABLE` (503), `MAPS_RATE_LIMIT` (429), `VALIDATION_ERROR` (400), `ROUTE_INFEASIBLE` (422), `OPTIMIZER_UNAVAILABLE` (503) |
+| Id inexistente / parada fuera de orden | `VALIDATION_ERROR` (400) con mensaje específico, no 404 ni código propio |
 
 ### MSW en modo mock
 Los mocks están aislados en `src/mocks/` y solo se importan dinámicamente si `VITE_USE_MOCK=true`. El código de producción no los referencia.

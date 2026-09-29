@@ -22,7 +22,7 @@ interface Props {
 /**
  * FE-009/010/011/012/013: Vista de ruta activa.
  * Muestra mapa, paradas, siguiente destino y botón "Marcar visitada".
- * Polling de recálculo mientras la ruta está IN_PROGRESS.
+ * Polling de recálculo mientras la ruta está ACTIVE.
  */
 export function ActiveRouteView({ route: initialRoute, pointsById, depotPointId, onRouteUpdated, onBack }: Props) {
   const [route, setRoute] = useState<RouteResponseDto>(initialRoute);

@@ -177,7 +177,9 @@ html, body {
 .badge-visited { background: #f3f4f6; color: var(--color-visited); }
 .badge-status { padding: 0.25rem 0.6rem; }
 .badge-completed { background: #dcfce7; color: var(--color-success); }
-.badge-in_progress { background: #dbeafe; color: var(--color-depot); }
+.badge-active { background: #dbeafe; color: var(--color-depot); }
+.badge-calculating { background: #fef9c3; color: #854d0e; }
+.badge-error { background: #fee2e2; color: #991b1b; }
 .badge-pending { background: #fef9c3; color: #854d0e; }
 
 /* ─── Capture View ─────────────────────────────────────────────────────────── */

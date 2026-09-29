@@ -70,6 +70,50 @@ describe('httpClient — error mapping', () => {
     }
   });
 
+  it('VALIDATION_ERROR conserva el mensaje específico del backend', async () => {
+    mockFetch(
+      {
+        success: false,
+        message: 'Debe marcarse primero la parada pendiente con order=2',
+        data: null,
+        error: { code: 'VALIDATION_ERROR', details: null },
+      },
+      400
+    );
+    const { http, ApiDomainError } = await import('@/services/httpClient');
+    try {
+      await http.post('/test');
+      expect.fail('Debería haber lanzado un error');
+    } catch (err) {
+      expect(err).toBeInstanceOf(ApiDomainError);
+      expect((err as InstanceType<typeof ApiDomainError>).code).toBe('VALIDATION_ERROR');
+      expect((err as InstanceType<typeof ApiDomainError>).message).toBe(
+        'Debe marcarse primero la parada pendiente con order=2'
+      );
+    }
+  });
+
+  it.each([
+    ['ROUTE_INFEASIBLE', 422, 'ruta viable'],
+    ['MAPS_RATE_LIMIT', 429, 'límite de consultas'],
+    ['MAPS_UNAVAILABLE', 503, 'servicio de mapas'],
+    ['OPTIMIZER_UNAVAILABLE', 503, 'servicio de optimización'],
+  ])('mapea el código real %s (HTTP %i) a un mensaje amigable', async (code, status, fragment) => {
+    mockFetch(
+      { success: false, message: 'texto interno', data: null, error: { code, details: null } },
+      status
+    );
+    const { http, ApiDomainError } = await import('@/services/httpClient');
+    try {
+      await http.post('/test');
+      expect.fail('Debería haber lanzado un error');
+    } catch (err) {
+      expect(err).toBeInstanceOf(ApiDomainError);
+      expect((err as InstanceType<typeof ApiDomainError>).code).toBe(code);
+      expect((err as InstanceType<typeof ApiDomainError>).message).toContain(fragment);
+    }
+  });
+
   it('mapea error 404 a mensaje de recurso no encontrado', async () => {
     mockFetch(
       { success: false, message: 'Not found', data: null, error: { code: 'ROUTE_NOT_FOUND', details: null } },
