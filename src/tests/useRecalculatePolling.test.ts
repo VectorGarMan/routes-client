@@ -16,6 +16,7 @@ const route: RouteResponseDto = {
   stops: [],
   totalDistanceMeters: 0,
   totalTimeSeconds: 0,
+  routeGeometry: null,
   updatedAt: '2026-01-01T00:00:00Z',
 };
 

@@ -15,6 +15,7 @@ const session: ActiveSession = {
     stops: [{ pointId: 'a', order: 0, status: 'PENDING' }],
     totalDistanceMeters: 1000,
     totalTimeSeconds: 300,
+    routeGeometry: null,
     updatedAt: '2026-01-01T00:00:00Z',
   },
   pointsById: { a: { id: 'a', reference: 'Bodega', timeWindow: null } },

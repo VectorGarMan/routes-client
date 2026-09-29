@@ -56,6 +56,7 @@ export interface RouteResponseDto {
   stops: RouteStopDto[];
   totalDistanceMeters: number;
   totalTimeSeconds: number;
+  routeGeometry: [number, number][] | null; // [lng, lat] por punto, orden GeoJSON (Mapbox)
   updatedAt: string;        // ISO-8601
 }
 

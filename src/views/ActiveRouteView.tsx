@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { MapView } from '@/components/MapView';
 import { RouteResult } from '@/components/RouteResult';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
@@ -128,6 +128,7 @@ export function ActiveRouteView({ route: initialRoute, pointsById, depotPointId,
         nextPointId={nextStop?.pointId}
         depotPointId={depotPointId}
         currentPosition={currentPosition}
+        routeGeometry={route.routeGeometry}
       />
 
       {/* Información de ubicación actual */}
