@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import type { DeliveryPointRequest, TimeWindowDto } from '@/models';
-import { validateReference, validateLocation } from '@/utils/routeUtils';
+import { validateReference, validateAddress } from '@/utils/routeUtils';
 import { toIsoWithOffset } from '@/utils/format';
 
 interface Props {
@@ -11,13 +11,11 @@ interface Props {
 
 /**
  * FE-004: Formulario de captura de un punto de entrega.
- * Produce exactamente el payload DeliveryPointRequest.
+ * Solo requiere dirección; el backend (Mapbox) resuelve las coordenadas.
  */
 export function DeliveryPointForm({ onSubmit, loading, error }: Props) {
   const [reference, setReference] = useState('');
   const [address, setAddress] = useState('');
-  const [latitude, setLatitude] = useState('');
-  const [longitude, setLongitude] = useState('');
   const [useTimeWindow, setUseTimeWindow] = useState(false);
   const [windowStart, setWindowStart] = useState('');
   const [windowEnd, setWindowEnd] = useState('');
@@ -30,8 +28,8 @@ export function DeliveryPointForm({ onSubmit, loading, error }: Props) {
     const refError = validateReference(reference);
     if (refError) { setFormError(refError); return; }
 
-    const locError = validateLocation(address, latitude, longitude);
-    if (locError) { setFormError(locError); return; }
+    const addrError = validateAddress(address);
+    if (addrError) { setFormError(addrError); return; }
 
     if (useTimeWindow && (!windowStart || !windowEnd)) {
       setFormError('Completa la hora de inicio y fin de la ventana de tiempo.');
@@ -48,14 +46,8 @@ export function DeliveryPointForm({ onSubmit, loading, error }: Props) {
 
     const payload: DeliveryPointRequest = {
       reference: reference.trim(),
+      address: address.trim(),
     };
-
-    if (address.trim()) payload.address = address.trim();
-
-    if (latitude.trim() && longitude.trim()) {
-      payload.latitude = parseFloat(latitude);
-      payload.longitude = parseFloat(longitude);
-    }
 
     if (timeWindow) payload.timeWindow = timeWindow;
 
@@ -78,7 +70,7 @@ export function DeliveryPointForm({ onSubmit, loading, error }: Props) {
       </div>
 
       <div className="form-group">
-        <label htmlFor="address">Dirección</label>
+        <label htmlFor="address">Dirección *</label>
         <input
           id="address"
           type="text"
@@ -86,38 +78,8 @@ export function DeliveryPointForm({ onSubmit, loading, error }: Props) {
           onChange={(e) => setAddress(e.target.value)}
           placeholder="Ej: Av. Insurgentes Sur 123, CDMX"
           disabled={loading}
+          required
         />
-      </div>
-
-      <div className="form-row">
-        <div className="form-group">
-          <label htmlFor="latitude">Latitud</label>
-          <input
-            id="latitude"
-            type="number"
-            step="any"
-            value={latitude}
-            onChange={(e) => setLatitude(e.target.value)}
-            placeholder="-90 a 90"
-            disabled={loading}
-            min="-90"
-            max="90"
-          />
-        </div>
-        <div className="form-group">
-          <label htmlFor="longitude">Longitud</label>
-          <input
-            id="longitude"
-            type="number"
-            step="any"
-            value={longitude}
-            onChange={(e) => setLongitude(e.target.value)}
-            placeholder="-180 a 180"
-            disabled={loading}
-            min="-180"
-            max="180"
-          />
-        </div>
       </div>
 
       <div className="form-group form-check">

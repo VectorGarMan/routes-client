@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { validateReference, validateLocation, getNextStop } from '@/utils/routeUtils';
+import { validateReference, validateAddress, getNextStop } from '@/utils/routeUtils';
 import type { RouteStopDto } from '@/models';
 
 // ─── validateReference ────────────────────────────────────────────────────────
@@ -18,35 +18,19 @@ describe('validateReference', () => {
   });
 });
 
-// ─── validateLocation ─────────────────────────────────────────────────────────
+// ─── validateAddress ──────────────────────────────────────────────────────────
 
-describe('validateLocation', () => {
-  it('acepta solo address', () => {
-    expect(validateLocation('Av. Insurgentes 123', '', '')).toBeNull();
+describe('validateAddress', () => {
+  it('acepta una dirección válida', () => {
+    expect(validateAddress('Av. Insurgentes Sur 123, CDMX')).toBeNull();
   });
 
-  it('acepta latitud + longitud válidas', () => {
-    expect(validateLocation('', '19.4326', '-99.1332')).toBeNull();
+  it('rechaza dirección vacía', () => {
+    expect(validateAddress('')).not.toBeNull();
   });
 
-  it('rechaza si ni address ni coordenadas', () => {
-    expect(validateLocation('', '', '')).not.toBeNull();
-  });
-
-  it('rechaza latitud sin longitud', () => {
-    expect(validateLocation('', '19.4326', '')).not.toBeNull();
-  });
-
-  it('rechaza longitud sin latitud', () => {
-    expect(validateLocation('', '', '-99.1332')).not.toBeNull();
-  });
-
-  it('rechaza latitud fuera de rango', () => {
-    expect(validateLocation('', '200', '-99.1332')).not.toBeNull();
-  });
-
-  it('rechaza longitud fuera de rango', () => {
-    expect(validateLocation('', '19.4326', '-200')).not.toBeNull();
+  it('rechaza dirección con solo espacios', () => {
+    expect(validateAddress('   ')).not.toBeNull();
   });
 });
 

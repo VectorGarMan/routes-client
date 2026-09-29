@@ -15,7 +15,7 @@ describe('DeliveryPointForm', () => {
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
-  it('muestra error si referencia está presente pero no hay ubicación', async () => {
+  it('muestra error si hay referencia pero no hay dirección', async () => {
     const onSubmit = vi.fn();
     render(<DeliveryPointForm onSubmit={onSubmit} loading={false} error={null} />);
 
@@ -25,12 +25,12 @@ describe('DeliveryPointForm', () => {
     fireEvent.click(screen.getByRole('button', { name: /agregar punto/i }));
 
     await waitFor(() => {
-      expect(screen.getByRole('alert')).toHaveTextContent(/dirección o coordenadas/i);
+      expect(screen.getByRole('alert')).toHaveTextContent(/dirección es obligatoria/i);
     });
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
-  it('llama onSubmit con el payload correcto (solo address)', async () => {
+  it('llama onSubmit con reference y address', async () => {
     const onSubmit = vi.fn().mockResolvedValue(undefined);
     render(<DeliveryPointForm onSubmit={onSubmit} loading={false} error={null} />);
 
@@ -50,30 +50,10 @@ describe('DeliveryPointForm', () => {
     });
   });
 
-  it('llama onSubmit con coordenadas parseadas a número', async () => {
-    const onSubmit = vi.fn().mockResolvedValue(undefined);
-    render(<DeliveryPointForm onSubmit={onSubmit} loading={false} error={null} />);
-
-    fireEvent.change(screen.getByLabelText(/referencia/i), {
-      target: { value: 'Punto GPS' },
-    });
-    fireEvent.change(screen.getByLabelText(/latitud/i), {
-      target: { value: '19.4326' },
-    });
-    fireEvent.change(screen.getByLabelText(/longitud/i), {
-      target: { value: '-99.1332' },
-    });
-    fireEvent.click(screen.getByRole('button', { name: /agregar punto/i }));
-
-    await waitFor(() => {
-      expect(onSubmit).toHaveBeenCalledWith(
-        expect.objectContaining({
-          reference: 'Punto GPS',
-          latitude: 19.4326,
-          longitude: -99.1332,
-        })
-      );
-    });
+  it('no expone campos de latitud ni longitud', () => {
+    render(<DeliveryPointForm onSubmit={vi.fn()} loading={false} error={null} />);
+    expect(screen.queryByLabelText(/latitud/i)).toBeNull();
+    expect(screen.queryByLabelText(/longitud/i)).toBeNull();
   });
 
   it('deshabilita el botón mientras loading=true', () => {
