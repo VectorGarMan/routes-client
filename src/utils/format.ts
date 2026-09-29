@@ -4,6 +4,8 @@
  * El resto de la app trabaja internamente con metros y segundos.
  */
 
+import type { RouteStatus } from '@/models';
+
 /**
  * Convierte metros a kilómetros con 1 decimal.
  * Ej: 1530 → "1.5 km"
@@ -24,6 +26,21 @@ export function formatDuration(seconds: number): string {
   const minutes = totalMinutes % 60;
   if (minutes === 0) return `${hours} h`;
   return `${hours} h ${minutes} min`;
+}
+
+const ROUTE_STATUS_LABELS: Record<RouteStatus, string> = {
+  CALCULATING: 'Calculando',
+  ACTIVE: 'En curso',
+  COMPLETED: 'Completada',
+  ERROR: 'Con error',
+};
+
+/**
+ * Etiqueta en español del estado de una ruta. Si el backend agrega un estado
+ * nuevo, se muestra tal cual en lugar de dejar el badge vacío.
+ */
+export function routeStatusLabel(status: string): string {
+  return ROUTE_STATUS_LABELS[status as RouteStatus] ?? status;
 }
 
 /**

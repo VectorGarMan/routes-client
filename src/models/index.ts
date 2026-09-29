@@ -47,7 +47,8 @@ export interface RouteStopDto {
   status: StopStatus;
 }
 
-export type RouteStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED';
+// Estados reales del backend (CTR-001): ACTIVE = ruta calculada y en curso.
+export type RouteStatus = 'CALCULATING' | 'ACTIVE' | 'COMPLETED' | 'ERROR';
 
 export interface RouteResponseDto {
   routeId: string;          // UUID
@@ -69,15 +70,5 @@ export interface ApiResponse<T> {
   success: boolean;
   message: string;
   data: T;
-  error: ApiError;
-}
-
-// ─── Paginación del historial ─────────────────────────────────────────────────
-
-export interface PageResponse<T> {
-  content: T[];
-  totalElements: number;
-  totalPages: number;
-  size: number;
-  number: number; // página actual (0-based)
+  error: ApiError | null;
 }

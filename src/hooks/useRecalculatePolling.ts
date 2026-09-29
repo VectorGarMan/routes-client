@@ -4,8 +4,8 @@ import { config } from '@/config';
 import type { RouteResponseDto } from '@/models';
 
 /**
- * Polling periódico al endpoint de recálculo mientras la ruta está IN_PROGRESS.
- * Se detiene automáticamente cuando status === COMPLETED o el componente desmonta.
+ * Polling periódico al endpoint de recálculo mientras la ruta está ACTIVE.
+ * Se detiene automáticamente cuando status !== ACTIVE (p. ej. COMPLETED) o el componente desmonta.
  *
  * @param routeId  - ID de la ruta activa (null = sin ruta activa)
  * @param status   - Estado actual de la ruta
@@ -23,7 +23,7 @@ export function useRecalculatePolling(
   onNotifyRef.current = onNotify;
 
   useEffect(() => {
-    if (!routeId || status !== 'IN_PROGRESS') return;
+    if (!routeId || status !== 'ACTIVE') return;
 
     const interval = setInterval(async () => {
       try {

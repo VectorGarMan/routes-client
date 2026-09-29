@@ -1,6 +1,6 @@
 import React from 'react';
 import type { RouteResponseDto, DeliveryPointResponse } from '@/models';
-import { formatDistance, formatDuration } from '@/utils/format';
+import { formatDistance, formatDuration, routeStatusLabel } from '@/utils/format';
 import { getNextStop } from '@/utils/routeUtils';
 
 interface Props {
@@ -29,9 +29,7 @@ export function RouteResult({ route, pointsById }: Props) {
         <div className="route-stat">
           <span className="stat-label">Estado</span>
           <span className={`badge badge-status badge-${route.status.toLowerCase()}`}>
-            {route.status === 'PENDING' && 'Pendiente'}
-            {route.status === 'IN_PROGRESS' && 'En curso'}
-            {route.status === 'COMPLETED' && 'Completada'}
+            {routeStatusLabel(route.status)}
           </span>
         </div>
       </div>
