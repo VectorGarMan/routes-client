@@ -2,6 +2,17 @@ import React, { useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import type { DeliveryPointResponse, RouteStopDto } from '@/models';
+import { config } from '@/config';
+
+// Teselas raster de Mapbox (Static Tiles API). Con teselas de 512 px, Leaflet
+// necesita tileSize=512 y zoomOffset=-1 (configuración recomendada por Mapbox).
+const HAS_MAPBOX_TOKEN = config.mapboxToken.length > 0;
+const MAPBOX_TILES_URL =
+  `https://api.mapbox.com/styles/v1/${config.mapboxStyle}/tiles/{z}/{x}/{y}` +
+  `?access_token=${encodeURIComponent(config.mapboxToken)}`;
+const MAPBOX_ATTRIBUTION =
+  '&copy; <a href="https://www.mapbox.com/about/maps/">Mapbox</a> ' +
+  '&copy; <a href="https://www.openstreetmap.org/about/">OpenStreetMap</a>';
 
 // Corregir ícono por defecto de Leaflet con Vite
 import iconUrl from 'leaflet/dist/images/marker-icon.png';
@@ -75,7 +86,8 @@ export interface MapViewProps {
 
 /**
  * FE-010: Componente encapsulado de mapa.
- * Usa Leaflet + OpenStreetMap. El proveedor puede cambiarse aquí sin tocar el resto de la app.
+ * Usa Leaflet con teselas de Mapbox (VITE_MAPBOX_TOKEN). Sin token cae a OpenStreetMap
+ * y avisa. El proveedor puede cambiarse aquí sin tocar el resto de la app.
  * Solo renderizado; ninguna lógica de negocio se delega al proveedor de mapas.
  */
 export function MapView({
@@ -110,11 +122,25 @@ export function MapView({
 
   return (
     <div className="map-wrapper">
+      {!HAS_MAPBOX_TOKEN && (
+        <p className="warning-text">
+          ⚠️ Falta VITE_MAPBOX_TOKEN: se muestra el mapa de OpenStreetMap como respaldo.
+        </p>
+      )}
       <MapContainer center={center} zoom={13} className="map-container" scrollWheelZoom>
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
+        {HAS_MAPBOX_TOKEN ? (
+          <TileLayer
+            attribution={MAPBOX_ATTRIBUTION}
+            url={MAPBOX_TILES_URL}
+            tileSize={512}
+            zoomOffset={-1}
+          />
+        ) : (
+          <TileLayer
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          />
+        )}
 
         {currentPosition && (
           <>

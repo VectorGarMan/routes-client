@@ -39,6 +39,8 @@ Todas las variables están en `.env.example`. Copia el archivo a `.env` y ajusta
 | `VITE_API_BASE_URL` | URL base del backend Spring Boot (sin `/` al final) | `http://localhost:8080` |
 | `VITE_USE_MOCK` | `true` activa el mock MSW; `false` usa el backend real | `false` |
 | `VITE_RECALCULATE_INTERVAL_MS` | Intervalo de polling del recálculo (ms) | `30000` |
+| `VITE_MAPBOX_TOKEN` | Token **público** de Mapbox (`pk.*`) para dibujar el mapa. Sin él, el mapa cae a OpenStreetMap con un aviso | *(vacío)* |
+| `VITE_MAPBOX_STYLE` | Estilo del mapa de Mapbox | `mapbox/streets-v12` |
 
 > **Nota:** `.env` está en `.gitignore` y nunca se versiona. Solo `.env.example` va al repositorio.
 
@@ -151,7 +153,7 @@ src/
 ├── components/
 │   ├── DeliveryPointForm.tsx  # Formulario de captura (FE-004)
 │   ├── PointList.tsx          # Lista de puntos capturados (FE-005)
-│   ├── MapView.tsx            # Mapa encapsulado Leaflet+OSM (FE-010/011)
+│   ├── MapView.tsx            # Mapa encapsulado Leaflet+Mapbox (FE-010/011)
 │   ├── RouteResult.tsx        # Resultado de ruta: paradas, distancia, tiempo (FE-009)
 │   ├── LoadingSpinner.tsx
 │   ├── ErrorMessage.tsx
@@ -178,12 +180,12 @@ src/
 ## Decisiones tomadas
 
 ### Tecnología de mapas
-**Leaflet + OpenStreetMap** (`react-leaflet`). Se eligió como opción por defecto porque:
-- Es libre, gratuita y sin necesidad de API key.
-- El contrato del backend no especifica un proveedor de mapas.
-- El componente `MapView` encapsula toda la lógica del mapa detrás de una abstracción; cambiar el proveedor solo requiere modificar ese archivo.
+**Mapbox**, el proveedor del proyecto (MAP-001, el mismo que usa el backend). El mapa se dibuja con **Leaflet** (`react-leaflet`) usando las teselas raster de Mapbox (Static Tiles API), lo que evita reescribir marcadores y polilíneas.
 
-> Para usar Google Maps u otro proveedor: reemplaza `MapView.tsx` manteniendo la misma interfaz de props (`pointsById`, `stops`, `nextPointId`, `depotPointId`, `currentPosition`).
+- Requiere un token **público** (`pk.*`) en `VITE_MAPBOX_TOKEN`. Como todo `VITE_*` queda visible en el navegador, usa un token distinto al del backend (`MAPBOX_ACCESS_TOKEN`) y restringe su URL en tu cuenta de Mapbox. **Nunca** uses un token secreto (`sk.*`).
+- Sin token, `MapView` cae a OpenStreetMap y muestra un aviso, para que el modo mock siga siendo usable.
+- Solo se usa para dibujar; la lógica de rutas, distancias y tráfico sigue en el backend.
+- El componente `MapView` encapsula el mapa detrás de una abstracción; cambiar de proveedor (o pasar a Mapbox GL JS) solo requiere modificar ese archivo, manteniendo sus props (`pointsById`, `stops`, `nextPointId`, `depotPointId`, `currentPosition`).
 
 ### Estado local vs. store global
 Se usa estado local en `App.tsx` para los puntos capturados y la ruta activa. No se agregó Redux/Zustand para mantener la solución simple; si el proyecto crece, el estado de `pointsById` puede migrarse fácilmente a un store.
@@ -234,7 +236,7 @@ Los mocks están aislados en `src/mocks/` y solo se importan dinámicamente si `
 | FE-006 | Botón "Calcular" deshabilitado si hay punto inválido; `LOCATION_INVALID` interpretado | ✅ Cumplido |
 | FE-007 | Selector DISTANCE/TIME; validación mínimo 2 puntos + depósito; estado CALCULATING; manejo 400/503 | ✅ Cumplido |
 | FE-009 | Paradas en orden del backend; distancia/tiempo convertidos solo en presentación | ✅ Cumplido |
-| FE-010 | `MapView` encapsulado e intercambiable; Leaflet+OSM; no lógica de negocio en el proveedor | ✅ Cumplido |
+| FE-010 | `MapView` encapsulado e intercambiable; Leaflet + teselas de Mapbox; no lógica de negocio en el proveedor | ✅ Cumplido |
 | FE-011 | Marcadores visuales distintos por estado (PENDING/ACTUAL/VISITED/DEPOT); siguiente destino claro | ✅ Cumplido |
 | FE-012 | Geolocation con manejo de denegado; botón "Marcar visitada"; actualización con `RouteResponse`; aviso COMPLETED | ✅ Cumplido |
 | FE-013 | Polling periódico configurable; aviso no intrusivo; sin recaptura de paradas | ✅ Cumplido |
