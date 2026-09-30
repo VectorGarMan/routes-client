@@ -1,3 +1,6 @@
+<img width="1280" height="640" alt="1" src="https://github.com/user-attachments/assets/6dbf364e-bb94-42fb-919f-cf7cf175e1b6" />
+
+
 # Routes App — Frontend
 
 Frontend React para el **Routes Optimization Service** (backend Spring Boot). Permite a un chofer/repartidor registrar puntos de entrega, calcular una ruta óptima y seguirla en tiempo real desde el celular.
